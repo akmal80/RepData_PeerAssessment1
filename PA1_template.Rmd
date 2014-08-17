@@ -1,20 +1,151 @@
-# Reproducible Research: Peer Assessment 1
+---
+title: "PA1_template"
+author: "AAA"
+date: "Saturday, August 16, 2014"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r, , echo=TRUE}
+##########Loading and preprocessing the data#############################################
+
+lct <- Sys.getlocale("LC_TIME"); Sys.setlocale("LC_TIME", "C")
+
+#setting working directory  
+
+setwd("C:\\Users\\puldor\\Desktop\\Coresera\\Rep_Prod_Res")
+
+activity <- read.csv("activity.csv", na.string="NA", header=TRUE , stringsAsFactors=F)
+
+str(activity)
+
+activity$date <- as.Date(activity$date, "%Y-%m-%d")
+
+str(activity)
 
 
-## Loading and preprocessing the data
+#########Q1. What is mean total number of steps taken per day?#########################
+
+daily_sum <- rowsum(activity$steps, activity$date, reorder = TRUE, na.rm = FALSE)
+
+hist(daily_sum, xlab = "Total number of steps taken each day", ylab = "Frequency",plot= TRUE,  main = "Mean number of steps each day")
+
+#dev.copy(png,file='./mean_steps_day.png',width=480,height=480) 
+
+#Calculate and report the mean 
+daily_mean <- aggregate(activity$steps, by=list(Date=activity$date), FUN=mean, na.rm=TRUE)
+
+colnames(daily_mean) <- c("Date", "Mean number of steps")
+
+print(daily_mean)
+
+#Calculate and report the median
+
+daily_median <- aggregate(activity$steps, by=list(Date=activity$date), FUN=median, na.rm=TRUE)
+
+colnames(daily_median) <- c("Date", "Median number of steps")
+
+print(daily_median)
+
+#########Q2.What is the average daily activity pattern?###############################
+
+mean_inter <- aggregate(activity$steps, by=list(Interval=activity$interval), FUN=mean,  na.rm=TRUE)
+
+colnames(mean_inter) <- c("Interval", "N_steps")
+
+plot(mean_inter$Interval, mean_inter$N_steps, type="l", xlab="Interval", ylab="Number of steps")
+title(main = "Average steps by intervals")
+
+#dev.copy(png,file='./mean_steps_intervals.png',width=480,height=480) 
+
+#The same thing but in log file
+
+mean_inter$N_steps[mean_inter$N_steps==0] <- 1
+
+mean_inter$N_steps1 <- log(mean_inter$N_steps)
+
+plot(mean_inter$Interval, mean_inter$N_steps1, type="l", xlab="Interval", ylab="Number of steps")
+title(main = "Average steps by intervals (log form)")
+
+#dev.copy(png,file='./mean_steps_intervals_log.png',width=480,height=480) 
 
 
+#Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
+max_step_int <- max(activity$steps, na.rm=TRUE)
+step_max <- subset(activity, activity$steps == max_step_int, na.rm=TRUE)
+print(step_max[,1-3])
 
 
-## Imputing missing values
+#########Q3. Imputing missing values###################################################
+
+#Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+NaN_sum <- colSums(is.na(activity))
+print(NaN_sum)
+
+# Devise a strategy for filling in all of the missing values in the dataset. 
+####I go with the simplest method - filling NAs with mean number for whole dataset 
+
+mean_all <- mean(activity$steps, na.rm=TRUE)
+
+#Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+new_activity <- activity
+new_activity[is.na(new_activity <- activity)] <- mean_all
+
+#Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day
+
+hist(new_activity$steps)
+
+#dev.copy(png,file='./mean_steps_day_new.png',width=480,height=480)
+
+#mean
+
+daily_mean_new <- aggregate(new_activity$steps, by=list(Date=new_activity$date), FUN=mean, na.rm=TRUE)
+
+colnames(daily_mean_new) <- c("Date", "Mean number of steps")
+
+print (daily_mean_new)
+
+#meadian
+
+daily_median_new <- aggregate(new_activity$steps, by=list(Date=new_activity$date), FUN=median, na.rm=TRUE)
+
+colnames(daily_median_new) <- c("Date", "Median number of steps")
+
+print(daily_median_new)
 
 
+#########Q4.  Are there differences in activity patterns between weekdays and weekends?
 
-## Are there differences in activity patterns between weekdays and weekends?
+activity$weekday <- weekdays(activity$date) 
+
+activity$wd[activity$weekday=="Monday"] <- "weekday"
+activity$wd[activity$weekday=="Tuesday"] <- "weekday"
+activity$wd[activity$weekday=="Wednesday"] <- "weekday"
+activity$wd[activity$weekday=="Wednesday"] <- "weekday"
+activity$wd[activity$weekday=="Thursday"] <- "weekday"
+activity$wd[activity$weekday=="Friday"] <- "weekday"
+activity$wd[activity$weekday=="Saturday"] <- "weekend"
+activity$wd[activity$weekday=="Sunday"] <- "weekend"
+
+activity$wd <- factor(activity$wd)
+
+mean_inter_wd <- aggregate(activity$steps, by=list(Interval=activity$interval, weekday = activity$wd), FUN=mean,  na.rm=TRUE)
+
+mean_inter_wd$x[mean_inter_wd$x==0] <- 1
+
+mean_inter_wd$x <- log(mean_inter_wd$x)
+
+library(lattice)
+xyplot(x ~ Interval | weekday, data =mean_inter_wd, type= "l", layout = c(1, 2), ylab = "Number of steps")
+
+#dev.copy(png,file='./mean_steps_intervals_wk.png',width=480,height=480) 
+
+######### THE END ############################################################################
+
+```
